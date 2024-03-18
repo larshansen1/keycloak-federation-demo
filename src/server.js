@@ -1,6 +1,4 @@
 const express = require('express');
-const session = require('express-session');
-const Keycloak = require('keycloak-connect');
 const bodyParser = require('body-parser');
 require('dotenv').config({ path: '../.env' });
 

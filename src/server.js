@@ -25,6 +25,7 @@ app.use((req, res, next) => {
 });
 
 // Include modular route handlers for web and API endpoints
+// Adding mmemorystore to use common source for session management
 const webEndpoints = require('./webEndpoints')(memoryStore);// Web routes module
 const apiEndpoints = require('./apiEndpoints')(memoryStore); // API routes module
 

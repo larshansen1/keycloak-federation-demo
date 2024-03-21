@@ -1,3 +1,5 @@
+//Implements API Endpoint with Basic Auth
+
 const express = require('express');
 const axios = require('axios');
 const basicAuth = require('basic-auth');

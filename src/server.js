@@ -1,3 +1,5 @@
+//Starts the server on port 3000
+
 const express = require('express');
 const session = require('express-session'); // Import session middleware
 const bodyParser = require('body-parser');

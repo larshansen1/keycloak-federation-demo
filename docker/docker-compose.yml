@@ -1,42 +1,43 @@
-version: '3.7'
+version: '3.7' # Specifies the version of the Docker Compose file format
 
-services:
-  keycloak:
-    image: quay.io/keycloak/keycloak:latest
-    command:
-      - "start-dev" # or "start" for production, ensuring you have HTTPS configured
-    environment:
-      KC_HEALTH_ENABLED: "true"
-      KC_METRICS_ENABLED: "true"
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: password
-      KC_HOSTNAME: localhost
-      KEYCLOAK_ADMIN: admin # Set your desired admin username here
-      KEYCLOAK_ADMIN_PASSWORD: admin # Set your desired admin password here
-      KEYCLOAK_LOGLEVEL: DEBUG
-    depends_on:
+services: # Defines the services (containers) to be created
+
+  keycloak: # The first service - Keycloak server
+    image: quay.io/keycloak/keycloak:latest # The Docker image to use for the Keycloak service
+    command: 
+      - "start-dev" # Command to start Keycloak in development mode. Use "start" for production with HTTPS.
+    environment: # Environment variables for the Keycloak service
+      KC_HEALTH_ENABLED: "true" # Enables the health check endpoint
+      KC_METRICS_ENABLED: "true" # Enables metrics collection
+      KC_DB: postgres # Specifies the database type (PostgreSQL)
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak # JDBC URL for the database
+      KC_DB_USERNAME: keycloak # Database username
+      KC_DB_PASSWORD: password # Database password
+      KC_HOSTNAME: localhost # Hostname for the Keycloak instance
+      KEYCLOAK_ADMIN: admin # Admin username for the Keycloak instance
+      KEYCLOAK_ADMIN_PASSWORD: admin # Admin password for the Keycloak instance
+      KEYCLOAK_LOGLEVEL: DEBUG # Log level (DEBUG, INFO, WARN, ERROR)
+    depends_on: # Specifies that the keycloak service depends on the postgres service
       - postgres
     ports:
-      - "8080:8080"
+      - "8080:8080" # Maps port 8080 on the host to port 8080 on the container
     networks:
-      - keycloak_network
+      - keycloak_network # Specifies which network this service is part of
 
-  postgres:
-    image: postgres:latest
-    environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: password
+  postgres: # The second service - PostgreSQL database
+    image: postgres:latest # The Docker image to use for the PostgreSQL service
+    environment: # Environment variables for the PostgreSQL service
+      POSTGRES_DB: keycloak # Name of the database to create
+      POSTGRES_USER: keycloak # Username for the database
+      POSTGRES_PASSWORD: password # Password for the database
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data # Mounts the volume for persistent data
     networks:
-      - keycloak_network
+      - keycloak_network # Specifies which network this service is part of
 
-networks:
-  keycloak_network:
-    driver: bridge
+networks: # Defines networks to be created
+  keycloak_network: # Custom network for the services to communicate
+    driver: bridge # Use the bridge driver for the network
 
-volumes:
-  postgres_data:
+volumes: # Defines volumes for data persistence
+  postgres_data: # Custom volume for PostgreSQL data

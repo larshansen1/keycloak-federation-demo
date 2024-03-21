@@ -1,4 +1,4 @@
-// webEndpoints.js
+//Implements simple Web Page with 2-factor authentication
 
 // Import the Express framework to enable the creation of an HTTP server.
 const express = require('express');

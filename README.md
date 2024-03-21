@@ -1,56 +1,116 @@
-#Keycloak and LDAP integration with node.js
+# Keycloak and LDAP integration with node.js
 
-##Abstract
+## 1. Abstract
+
 Simple node.js app that demonstrates authentication of web user (with OTP) and API user (just basic auth) against this online LDAP service:
 
 https://www.forumsys.com/2022/05/10/online-ldap-test-server/
 
-Please note that credentials are hardcoded in various files. Not for production use.
+Please note that admin credentials for Keycloak and Postgres are hardcoded in docker-compose file. Not for production use!
 
-##setup
+## 2. Setup
 
-###1. Infrastructure - Keycloak
+### 2.1 Infrastructure - Keycloak
 
-Docker-compose file setting up Keycloak instance in DEV mode with Postgres as backend.
+Keycloak instance in DEV mode with Postgres as backend in Docker via
+[docker-compose](docker/docker-compose.yml)
 
-Url: http://localhost:8080
-Username / password: admin
+Start services with 
+```
+cd docker
+docker-compose up -d
+```
 
-###2. Keycloak setup
+Keycloak Admin Url: http://localhost:8080 \
+Username & password: admin 
 
-####Realms:
-- Realm: Demorealm
+### 2.2 Keycloak setup
 
+#### 2.2.1 Realm:
 
-####User Ferderation
-- User Federation:
+Login to Keycloak and create new Realm, i.e. "Demorealm"
 
-####Clients:
-- frontend-service: Authentication for web users. Configured OTP
-![alt text](<Skærmbillede 2024-03-18 kl. 22.45.51.png>)
+#### 2.2.2 User Federation
 
-- backend-service: Authentication for API users. Basic HTTP auth
+Switch to Demorealm and set up LDAP User Federation.
 
-![alt text](<Skærmbillede 2024-03-18 kl. 22.46.25.png>)
+![User Federation - Part 1](<screenshots/User Federation Part 1.png>)
+![User Federation - Part 2](<screenshots/User Federation Part 2.png>)
 
-###3. Environment vars
+#### 2.2.3 Clients:
 
-Use the .env-template as basis for .env file:
+##### frontend-service: 
 
-AUTH_SERVER_URL=http://localhost:8080/
-REALM=Demorealm
-SESSION_SECRET="whateveryouwant"
-WEB_CLIENT_ID=frontend-service
-WEB_CLIENT_SECRET= # optional
-API_CLIENT_ID=backend-service
-API_CLIENT_SECRET=whateverkeywascreated
+Create a client with "frontend_service" as Client ID (or whichever). Used for uthentication for web users. Configure the client to require OTP under "Advanced" via the "Authentication Flow Override" option.
 
-###4. Source code
+![Client: frontend-service](screenshots/frontend_client.png)
+
+![Authentication Flow Override](<screenshots/Authentication Flow Override.png>)
+
+##### backend-service: 
+
+Create a client for basic auth for API users (Client ID = backend-service) Basic HTTP auth
+
+![Client: backend-service](screenshots/backend_client.png)
+
+![backend-service Capability Config - include Service account roles](<screenshots/backend-service config.png>)
+### 3. Environment vars
+
+Copy the .env-template to .env and configure variables
+
+AUTH_SERVER_URL=http://localhost:8080/ \
+REALM=Demorealm \
+SESSION_SECRET="whateveryouwant" \
+WEB_CLIENT_ID=frontend-service \
+WEB_CLIENT_SECRET= # optional \
+API_CLIENT_ID=backend-service \
+API_CLIENT_SECRET=whateverkeywascreated \
+
+### 4. Source code
 
 Main files:
-- Server.js: Starts the application, sets up session store and routes
-- webEndpoints.js: Implements simple webpage that requires authentication
-- apiEndpoints.js: Implements simple API that requires basic auth
 
+[server.js](src/server.js):  Starts the application on port 3000, sets up session store and routes \
+[webEndpoints.js](src/webEndpoints.js): Implements simple webpage that requires authentication \
+[apiEndpoints.js](src/apiEndpoints.js): Implements simple API that requires basic auth \
 
+### 5. Run
 
+Install dependencies with:
+```npm install```
+
+This will fetch these dependencies:
+* axios
+* basic-auth
+* body-parser
+* express
+* express-session
+* keycloak-connect
+
+Then start server with:
+```node server.js```   
+
+To test:
+Web: 
+
+Navigate to http://localhost:3000/web/protected in browser.
+
+Login with einstein / password
+
+You will need to setup OTP
+
+![OTP Setup](screenshots/Web-login/OTP-setup.png)
+
+You should see the super secret homepage:
+![Login](screenshots/Web-login/Succesful-login.png)
+
+API: 
+
+Use CURL to test API:
+
+```  
+curl -H "Authorization: Basic $(echo -n 'tesla:password' | base64)" http://localhost:3000/api/protected
+```  
+You should now see authenticated message:
+
+![API Login](screenshots/API-login/API-login.png)

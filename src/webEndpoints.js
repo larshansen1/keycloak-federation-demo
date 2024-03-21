@@ -1,51 +1,65 @@
-// Import necessary modules
-const express = require('express'); // Express framework for building web applications
-const session = require('express-session'); // Middleware for handling sessions in Express applications
-const Keycloak = require('keycloak-connect'); // Keycloak's middleware for integrating authentication and authorization
+// webEndpoints.js
 
+// Import the Express framework to enable the creation of an HTTP server.
+const express = require('express');
+
+// Import Keycloak-connect to integrate Keycloak for secure authentication and authorization.
+const Keycloak = require('keycloak-connect');
+
+// Import dotenv to manage environment variables for the application.
 require('dotenv').config({ path: '../.env' });
-// Loads environment variables from a .env file
 
-const router = express.Router(); // Create a new router object to manage routes
+/**
+ * Module exports a function that initializes routes and Keycloak configuration.
+ * @param {Object} memoryStore - A session store instance for storing session data server-side.
+ * @returns {Router} A router object for defining web application routes.
+ */
+module.exports = function(memoryStore) {
+    // Create a new router instance to define routes for the web application.
+    const router = express.Router();
 
-// Initialize session support for the web application
-// This sets up an in-memory session store and configures session behavior
-const memoryStore = new session.MemoryStore();
-router.use(session({
-  secret: process.env.SESSION_SECRET, // The secret used to sign the session ID cookie, enhancing security
-  resave: false, // Prevents the session from being saved back to the session store if it hasn't been modified
-  saveUninitialized: true, // Forces a session that is "uninitialized" to be saved to the store, useful for creating sessions
-  store: memoryStore // Specifies the session store instance, here an in-memory store (not recommended for production)
-}));
+    // Define the configuration for the Keycloak client using environment variables.
+    const keycloakConfig = {
+        clientId: process.env.WEB_CLIENT_ID, // Client ID for the Keycloak client
+        bearerOnly: false, // Specifies if the client will only use bearer tokens for authentication
+        serverUrl: process.env.AUTH_SERVER_URL, // URL of the Keycloak server
+        realm: process.env.REALM, // Keycloak realm name
+        credentials: {
+            secret: process.env.WEB_CLIENT_SECRET // Secret key for the Keycloak client
+        }
+    };
 
-// Keycloak client configuration using environment variables for flexibility and security
-const keycloakConfig = {
-  clientId: process.env.WEB_CLIENT_ID, // The client ID for the web application registered in Keycloak
-  bearerOnly: false, // This application serves both as a client and a resource server, hence false
-  serverUrl: process.env.AUTH_SERVER_URL, // URL of the Keycloak server
-  realm: process.env.REALM, // The Keycloak realm under which the client is registered
-  credentials: {
-    secret: process.env.WEB_CLIENT_SECRET // Client secret for secure communication with Keycloak
-  }
+    // Initialize the Keycloak adapter with the provided memoryStore and client configuration.
+    const keycloak = new Keycloak({ store: memoryStore }, keycloakConfig);
+
+    /**
+     * Middleware to log session data for incoming requests.
+     * Useful for debugging and monitoring session states.
+     */
+    router.use((req, res, next) => {
+        console.log('Session data:', req.session);
+        next(); // Proceed to the next middleware/route handler
+    });
+
+    /**
+     * Apply Keycloak middleware to manage user authentication and protect routes.
+     * This middleware handles login, logout, and admin functionalities.
+     */
+    router.use(keycloak.middleware({
+        logout: '/logout', // Define the route for user logout
+        admin: '/', // Base path for the Keycloak admin console
+    }));
+
+    /**
+     * Defines a protected route that requires user authentication.
+     * Users must be authenticated to access this endpoint.
+     */
+    router.get('/web/protected', keycloak.protect(), (req, res) => {
+        console.log('Accessing protected route');
+        // Send a response to the authenticated user
+        res.send('Hello Authenticated Web User!');
+    });
+
+    // Return the configured router to be used by the Express application.
+    return router;
 };
-
-// Initialize the Keycloak adapter with the specified configuration and session store
-const keycloak = new Keycloak({ store: memoryStore }, keycloakConfig);
-
-// Apply Keycloak middleware to manage user authentication and secure routes
-// This includes handling for logout and administrative functions out-of-the-box
-router.use(keycloak.middleware({
-  logout: '/logout', // Defines the route for logging out users, integrating with Keycloak's logout mechanism
-  admin: '/', // Route for Keycloak's administrative functions, typically used for admin console redirection
-}));
-
-// Example of a protected route that requires user authentication
-// The `keycloak.protect()` middleware ensures that only authenticated users can access this route
-router.get('/web/protected', keycloak.protect(), (req, res) => {
-  console.log('Accessing protected route'); // Log access for monitoring or auditing purposes
-  res.send('Hello Authenticated Web User!'); // Response sent to authenticated users, can be customized as needed
-});
-
-// Export the router configuration to be used in the main application file
-// This modular approach helps in organizing route logic and middleware
-module.exports = router;

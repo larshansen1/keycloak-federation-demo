@@ -1,8 +1,19 @@
 const express = require('express');
+const session = require('express-session'); // Import session middleware
 const bodyParser = require('body-parser');
 require('dotenv').config({ path: '../.env' });
 
 const app = express();
+
+// Initialize session support for the web application
+// This sets up an in-memory session store and configures session behavior
+const memoryStore = new session.MemoryStore();
+app.use(session({
+  secret: process.env.SESSION_SECRET, // The secret used to sign the session ID cookie, enhancing security
+  resave: false, // Prevents the session from being saved back to the session store if it hasn't been modified
+  saveUninitialized: true, // Forces a session that is "uninitialized" to be saved to the store, useful for creating sessions
+  store: memoryStore // Specifies the session store instance, here an in-memory store (not recommended for production)
+}));
 
 app.use(bodyParser.json()); // Middleware to parse JSON bodies, making them easily accessible in req.body
 
@@ -14,11 +25,11 @@ app.use((req, res, next) => {
 });
 
 // Include modular route handlers for web and API endpoints
-const webEndpoints = require('./webEndpoints');// Web routes module
-const apiEndpoints = require('./apiEndpoints'); // API routes module
+const webEndpoints = require('./webEndpoints')(memoryStore);// Web routes module
+const apiEndpoints = require('./apiEndpoints')(memoryStore); // API routes module
 
 app.use('/', webEndpoints); // Mount webEndpoints at the root path
-app.use('/', apiEndpoints); // Mount apiEndpoints at the root path
+app.use('/', apiEndpoints); // Mount apiEndpoints at the root path, demonstrating modular route organization
 
 // Middleware for error logging and handling
 // This catches any errors that occur during the processing of requests, logging them and returning a generic error message
